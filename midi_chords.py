@@ -1,6 +1,8 @@
 import sys
 from rtmidi.midiutil import open_midiinput
+import rtmidi
 from PIL import Image
+import time
 
 # local import
 from chord_list import chords
@@ -84,15 +86,26 @@ if __name__ == '__main__':
 
     # paino is currently set to port 1
     port = 1
+    # checking if a usb MIDI instrument has been connected to the device
+    midi_out = rtmidi.MidiOut()
+    number_ports = len(midi_out.get_ports())
+    while number_ports < 2:
+        time.sleep(1)
+        number_ports = len(midi_out.get_ports())
+
     try:
-        midi, port_name = open_midiinput(port)
+        midi, port_name = open_midiinput(port, interactive=False)
     except (EOFError, KeyboardInterrupt):
         sys.exit()
 
     print("Press any chords on your piano. Press crtl-c to exit.")
     try:
         while True:
-            # receive MIDI messages (3bytes long) from the piano
+            # check if MIDI instrument is still connected
+            number_ports = len(midi_out.get_ports())
+            if number_ports < 3:
+                raise Exception("MIDI instrument has been removed")
+            # receive MIDI messages (3 bytes long) from the piano
             msg = midi.get_message()
 
             if msg:
